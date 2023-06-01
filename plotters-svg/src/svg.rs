@@ -400,12 +400,6 @@ impl<'a> DrawingBackend for SVGBackend<'a> {
             HPos::Center => "middle",
         };
 
-        let dy = match style.anchor().v_pos {
-            VPos::Top => "0.76em",
-            VPos::Center => "0.5ex",
-            VPos::Bottom => "-0.5ex",
-        };
-
         #[cfg(feature = "debug")]
         {
             let ((fx0, fy0), (fx1, fy1)) =
@@ -434,13 +428,18 @@ impl<'a> DrawingBackend for SVGBackend<'a> {
         let mut attrs = vec![
             ("x", format!("{}", x0)),
             ("y", format!("{}", y0)),
-            ("dy", dy.to_owned()),
             ("text-anchor", text_anchor.to_string()),
             ("font-family", style.family().as_str().to_string()),
             ("font-size", format!("{}", style.size() / 1.24)),
             ("opacity", make_svg_opacity(color)),
             ("fill", make_svg_color(color)),
         ];
+
+        match style.anchor().v_pos {
+            VPos::Top => attrs.push(("dy", "0.76em".to_owned())),
+            VPos::Center => attrs.push(("dy", "0.5ex".to_owned())),
+            VPos::Bottom => {}
+        };
 
         match style.style() {
             FontStyle::Normal => {}
