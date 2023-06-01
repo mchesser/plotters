@@ -495,12 +495,6 @@ impl<'a> DrawingBackend for SVGBackend<'a> {
             HPos::Center => "middle",
         };
 
-        let dy = match style.anchor().v_pos {
-            VPos::Top => "0.76em",
-            VPos::Center => "0.5ex",
-            VPos::Bottom => "-0.5ex",
-        };
-
         #[cfg(feature = "debug")]
         {
             let ((fx0, fy0), (fx1, fy1)) =
@@ -529,7 +523,11 @@ impl<'a> DrawingBackend for SVGBackend<'a> {
         let mut attrwriter = self.open_tag(SVGTag::Text);
         attrwriter.write_key("x").write_value(x0);
         attrwriter.write_key("y").write_value(y0);
-        attrwriter.write_key("dy").write_value(dy);
+        match style.anchor().v_pos {
+            VPos::Top => attrwriter.write_key("dy").write_value("0.76em"),
+            VPos::Center => attrwriter.write_key("dy").write_value("0.5ex"),
+            VPos::Bottom => {}
+        };
         attrwriter.write_key("text-anchor").write_value(text_anchor);
         attrwriter
             .write_key("font-family")
