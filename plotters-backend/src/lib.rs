@@ -33,7 +33,7 @@
   ```text
                                         .ensure_prepared() &&
     +-------------+    +-------------+    .draw_pixels()             +--------------+   drop
-    |Start drwaing|--->|Ready to draw| ------------------------+---->|Finish 1 frame| --------->
+    |Start drawing|--->|Ready to draw| ------------------------+---->|Finish 1 frame| --------->
     +-------------+    +-------------+                         |     +--------------+
            ^                  ^                                |            |
            |                  +------------------------------- +            |
@@ -308,9 +308,9 @@ pub trait DrawingBackend: Sized {
                     break;
                 }
                 // FIXME: This assume we have RGB image buffer
-                let r = src[(dx + dy * w) as usize * 3];
-                let g = src[(dx + dy * w) as usize * 3 + 1];
-                let b = src[(dx + dy * w) as usize * 3 + 2];
+                let r = src[(dx + dy * iw) as usize * 3];
+                let g = src[(dx + dy * iw) as usize * 3 + 1];
+                let b = src[(dx + dy * iw) as usize * 3 + 2];
                 let color = BackendColor {
                     alpha: 1.0,
                     rgb: (r, g, b),

@@ -64,7 +64,7 @@ fn test_pixel_element() {
             assert_eq!(b.draw_count, 1);
         });
     });
-    da.draw(&Pixel::new((150, 152), &RED))
+    da.draw(&Pixel::new((150, 152), RED))
         .expect("Drawing Failure");
 }
 
@@ -126,7 +126,140 @@ fn test_path_element() {
     });
     da.draw(&PathElement::new(
         vec![(100, 101), (105, 107), (150, 157)],
-        Into::<ShapeStyle>::into(&BLUE).stroke_width(5),
+        Into::<ShapeStyle>::into(BLUE).stroke_width(5),
+    ))
+    .expect("Drawing Failure");
+}
+
+/// An element of a series of connected lines in dash style.
+///
+/// It's similar to [`PathElement`] but has a dash style.
+pub struct DashedPathElement<I: Iterator + Clone, Size: SizeDesc> {
+    points: I,
+    size: Size,
+    spacing: Size,
+    style: ShapeStyle,
+}
+
+impl<I: Iterator + Clone, Size: SizeDesc> DashedPathElement<I, Size> {
+    /// Create a new path
+    /// - `points`: The iterator of the points
+    /// - `size`: The dash size
+    /// - `spacing`: The dash-to-dash spacing (gap size)
+    /// - `style`: The shape style
+    /// - returns the created element
+    pub fn new<I0, S>(points: I0, size: Size, spacing: Size, style: S) -> Self
+    where
+        I0: IntoIterator<IntoIter = I>,
+        S: Into<ShapeStyle>,
+    {
+        Self {
+            points: points.into_iter(),
+            size,
+            spacing,
+            style: style.into(),
+        }
+    }
+}
+
+impl<'a, I: Iterator + Clone, Size: SizeDesc> PointCollection<'a, I::Item>
+    for &'a DashedPathElement<I, Size>
+{
+    type Point = I::Item;
+    type IntoIter = I;
+    fn point_iter(self) -> Self::IntoIter {
+        self.points.clone()
+    }
+}
+
+impl<I0: Iterator + Clone, Size: SizeDesc, DB: DrawingBackend> Drawable<DB>
+    for DashedPathElement<I0, Size>
+{
+    fn draw<I: Iterator<Item = BackendCoord>>(
+        &self,
+        mut points: I,
+        backend: &mut DB,
+        ps: (u32, u32),
+    ) -> Result<(), DrawingErrorKind<DB::ErrorType>> {
+        let to_i = |(x, y): (f32, f32)| (x.round() as i32, y.round() as i32);
+        let to_f = |(x, y): (i32, i32)| (x as f32, y as f32);
+        let mut start = match points.next() {
+            Some(c) => to_f(c),
+            None => return Ok(()),
+        };
+        let size = self.size.in_pixels(&ps).max(0) as f32;
+        if size == 0. {
+            return Ok(());
+        }
+        let spacing = self.spacing.in_pixels(&ps).max(0) as f32;
+        let mut dist = 0.;
+        let mut is_solid = true;
+        let mut queue = vec![to_i(start)];
+        for curr in points {
+            let end = to_f(curr);
+            // Loop for solid and spacing
+            while start != end {
+                let (dx, dy) = (end.0 - start.0, end.1 - start.1);
+                let d = dx.hypot(dy);
+                let size = if is_solid { size } else { spacing };
+                let left = size - dist;
+                // Set next point to `start`
+                if left < d {
+                    let t = left / d;
+                    start = (start.0 + dx * t, start.1 + dy * t);
+                    dist += left;
+                } else {
+                    start = end;
+                    dist += d;
+                }
+                // Draw if needed
+                if is_solid {
+                    queue.push(to_i(start));
+                }
+                if size <= dist {
+                    if is_solid {
+                        backend.draw_path(queue.drain(..), &self.style)?;
+                    } else {
+                        queue.push(to_i(start));
+                    }
+                    dist = 0.;
+                    is_solid = !is_solid;
+                }
+            }
+        }
+        if queue.len() > 1 {
+            backend.draw_path(queue, &self.style)?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_dashed_path_element() {
+    use crate::prelude::*;
+    let check_list = std::cell::RefCell::new(vec![
+        vec![(100, 100), (100, 103), (100, 105)],
+        vec![(100, 107), (100, 112)],
+        vec![(100, 114), (100, 119)],
+        vec![(100, 119), (100, 120)],
+    ]);
+    let da = crate::create_mocked_drawing_area(300, 300, |m| {
+        m.check_draw_path(move |c, s, path| {
+            assert_eq!(c, BLUE.to_rgba());
+            assert_eq!(s, 7);
+            assert_eq!(path, check_list.borrow_mut().remove(0));
+        });
+        m.drop_check(|b| {
+            assert_eq!(b.num_draw_path_call, 3);
+            assert_eq!(b.draw_count, 3);
+        });
+    });
+    da.draw(&DashedPathElement::new(
+        vec![(100, 100), (100, 103), (100, 120)],
+        5.,
+        2.,
+        BLUE.stroke_width(7),
     ))
     .expect("Drawing Failure");
 }
@@ -199,7 +332,7 @@ fn test_rect_element() {
         let da = crate::create_mocked_drawing_area(300, 300, |m| {
             m.check_draw_rect(|c, s, f, u, d| {
                 assert_eq!(c, BLUE.to_rgba());
-                assert_eq!(f, false);
+                assert!(!f);
                 assert_eq!(s, 5);
                 assert_eq!([u, d], [(100, 101), (105, 107)]);
             });
@@ -219,7 +352,7 @@ fn test_rect_element() {
         let da = crate::create_mocked_drawing_area(300, 300, |m| {
             m.check_draw_rect(|c, _, f, u, d| {
                 assert_eq!(c, BLUE.to_rgba());
-                assert_eq!(f, true);
+                assert!(f);
                 assert_eq!([u, d], [(100, 101), (105, 107)]);
             });
             m.drop_check(|b| {
@@ -284,7 +417,7 @@ fn test_circle_element() {
     let da = crate::create_mocked_drawing_area(300, 300, |m| {
         m.check_draw_circle(|c, _, f, s, r| {
             assert_eq!(c, BLUE.to_rgba());
-            assert_eq!(f, false);
+            assert!(!f);
             assert_eq!(s, (150, 151));
             assert_eq!(r, 20);
         });
@@ -293,7 +426,7 @@ fn test_circle_element() {
             assert_eq!(b.draw_count, 1);
         });
     });
-    da.draw(&Circle::new((150, 151), 20, &BLUE))
+    da.draw(&Circle::new((150, 151), 20, BLUE))
         .expect("Drawing Failure");
 }
 
@@ -353,6 +486,6 @@ fn test_polygon_element() {
         });
     });
 
-    da.draw(&Polygon::new(points.clone(), &BLUE))
+    da.draw(&Polygon::new(points.clone(), BLUE))
         .expect("Drawing Failure");
 }
