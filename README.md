@@ -20,7 +20,7 @@ including bitmap, vector graph, piston window, GTK/Cairo and WebAssembly.
 - Try Plotters with an interactive Jupyter notebook, or view [here](https://plotters-rs.github.io/plotters-doc-data/evcxr-jupyter-integration.html) for the static HTML version.
 - To view the WASM example, go to this [link](https://plotters-rs.github.io/wasm-demo/www/index.html)
 - Currently we have all the internal code ready for console plotting, but a console based backend is still not ready. See [this example](https://github.com/plotters-rs/plotters/blob/master/plotters/examples/console.rs) for how to plot on console with a customized backend.
-- Plotters has moved all backend code to separate repositories, check [FAQ list](#faq-list) for details
+- Plotters has moved some backend code to separate repositories, check [FAQ list](#faq-list) for details
 - Some interesting [demo projects](#demo-projects) are available, feel free to try them out.
 
 ## Gallery
@@ -221,7 +221,7 @@ The feature `evcxr` should be enabled when including Plotters to Jupyter Noteboo
 The following code shows a minimal example of this.
 
 ```text
-:dep plotters = { version = "^0.3.5", default_features = false, features = ["evcxr", "all_series", "all_elements"] }
+:dep plotters = { version = "^0.3.6", default_features = false, features = ["evcxr", "all_series", "all_elements"] }
 extern crate plotters;
 use plotters::prelude::*;
 
@@ -611,8 +611,8 @@ pub fn register_font(
 	Since Plotters 0.3, all drawing backends are independent crate from the main Plotters crate.
 	Use the following link to find the backend code:
 
-	- [Bitmap Backend](https://github.com/plotters-rs/plotters-bitmap.git)
-	- [SVG Backend](https://github.com/plotters-rs/plotters-svg.git)
+	- [Bitmap Backend](./plotters-bitmap/) (current repository)
+	- [SVG Backend](./plotters-svg/) (current repository)
 	- [HTML5 Canvas Backend](https://github.com/plotters-rs/plotters-canvas.git)
 	- [GTK/Cairo Backend](https://github.com/plotters-rs/plotters-cairo.git)
 

@@ -107,7 +107,6 @@ pub mod text_anchor {
         pub fn new(h_pos: HPos, v_pos: VPos) -> Self {
             Pos { h_pos, v_pos }
         }
-
     }
 }
 
@@ -188,8 +187,8 @@ impl<'a> From<&'a str> for FontStyle {
 /// text drawing, those font information provides instructions about how the text should be
 /// rendered: color, size, slant, anchor, font, etc.
 ///
-/// This trait decouples the detailed implementaiton about the font and the backend code which
-/// wants to perfome some operation on the font.
+/// This trait decouples the detailed implementation about the font and the backend code which
+/// wants to perform some operation on the font.
 ///
 pub trait BackendTextStyle {
     /// The error type of this text style implementation
